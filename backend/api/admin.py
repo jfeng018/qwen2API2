@@ -78,9 +78,15 @@ async def list_accounts(request: Request):
 @router.post("/accounts/register", dependencies=[Depends(verify_admin)])
 async def register_new_account(request: Request):
     """一键调用浏览器无头注册新千问账号"""
+    import logging
     from backend.services.auth_resolver import register_qwen_account
     from backend.core.account_pool import AccountPool
     pool: AccountPool = request.app.state.account_pool
+    
+    log = logging.getLogger("backend.api.admin")
+    
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    log.info(f"[Register] 管理员触发注册，来源IP: {client_ip}")
     
     # 简单的频率限制保护
     current = len(pool.accounts)
@@ -91,6 +97,7 @@ async def register_new_account(request: Request):
         acc = await register_qwen_account()
         if acc:
             await pool.add(acc)
+            log.info(f"[Register] 注册成功: {acc.email}（当前账号数: {len(pool.accounts)}/100）")
             return {"ok": True, "email": acc.email, "message": "新账号注册成功并已入池"}
         return {"ok": False, "error": "自动化注册失败，可能遇到风控或页面元素改变"}
     except Exception as e:

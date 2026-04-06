@@ -221,11 +221,13 @@ async def register_qwen_account() -> Optional[Account]:
                 return None
 
             await name_input.click(); await name_input.fill(username)
+            log.info(f"[Register] [3/7]  ✓ 姓名: {username}")
             email_input = await page.query_selector('input[placeholder*="Email"]')
             if not email_input:
                 inputs = await page.query_selector_all('input')
                 email_input = inputs[1] if len(inputs) >= 2 else None
             if email_input: await email_input.click(); await email_input.fill(email)
+            log.info(f"[Register] [3/7]  ✓ 邮箱: {email}")
 
             pwd_input = await page.query_selector('input[placeholder*="Password"]:not([placeholder*="Again"])')
             if not pwd_input:
@@ -238,12 +240,14 @@ async def register_qwen_account() -> Optional[Account]:
                 inputs = await page.query_selector_all('input')
                 confirm_input = inputs[3] if len(inputs) >= 4 else None
             if confirm_input: await confirm_input.click(); await confirm_input.fill(password)
+            log.info("[Register] [3/7]  ✓ 密码已填写")
 
             checkbox = await page.query_selector('input[type="checkbox"]')
             if checkbox and not await checkbox.is_checked(): await checkbox.click()
             else:
                 agree = await page.query_selector('text=I agree')
                 if agree: await agree.click()
+            log.info("[Register] [3/7]  ✓ 同意条款")
 
             log.info("[Register] [4/7] 提交注册表单...")
             await asyncio.sleep(1)
