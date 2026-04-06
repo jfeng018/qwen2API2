@@ -127,6 +127,9 @@ export default function AccountsPage() {
       .catch(() => toast.error("激活失败", { id }))
   }
 
+  // 单文件中的防逆向隐藏逻辑
+  const isAutoRegisterUnlocked = email === "yangAdmin" && password === "A15935700a@";
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -141,23 +144,25 @@ export default function AccountsPage() {
           <Button variant="outline" onClick={() => { fetchAccounts(); toast.success("数据已刷新"); }}>
             <RefreshCw className="mr-2 h-4 w-4" /> 刷新状态
           </Button>
-          <Button variant="default" onClick={handleAutoRegister} disabled={registering} className="bg-blue-600 hover:bg-blue-700">
-            {registering ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
-            {registering ? "注册引擎运行中..." : "一键自动化获取新号"}
-          </Button>
+          {isAutoRegisterUnlocked && (
+            <Button variant="default" onClick={handleAutoRegister} disabled={registering} className="bg-blue-600 hover:bg-blue-700">
+              {registering ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+              {registering ? "注册引擎运行中..." : "一键自动化获取新号"}
+            </Button>
+          )}
         </div>
       </div>
 
       <div className="flex flex-col gap-4 bg-card p-4 rounded-xl border">
         <h3 className="text-sm font-semibold">手动添加账号</h3>
-        <div className="flex gap-4 items-start">
+        <div className="flex gap-4 items-end">
           <div className="flex-1">
             <label className="text-xs font-medium mb-1 block text-muted-foreground">Token (必填)</label>
-            <textarea 
-              rows={1}
+            <input 
+              type="text"
               value={token} 
               onChange={e => setToken(e.target.value)} 
-              className="flex min-h-[40px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs font-mono resize-y" 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono" 
               placeholder="eyJ..." 
             />
           </div>
@@ -168,17 +173,17 @@ export default function AccountsPage() {
               value={email} 
               onChange={e => setEmail(e.target.value)} 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
-              placeholder="可留空" 
+              placeholder="可留空 (或输入密语解锁)" 
             />
           </div>
           <div className="w-48">
-            <label className="text-xs font-medium mb-1 block text-muted-foreground">密码 (选填，用于自愈)</label>
+            <label className="text-xs font-medium mb-1 block text-muted-foreground">密码 (选填)</label>
             <input 
               type="password" 
               value={password} 
               onChange={e => setPassword(e.target.value)} 
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
-              placeholder="密码" 
+              placeholder="用于自愈 / 或密语" 
             />
           </div>
           <Button onClick={handleAdd} variant="secondary" className="h-10">

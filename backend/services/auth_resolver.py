@@ -2,8 +2,25 @@ import asyncio
 import logging
 from backend.core.account_pool import AccountPool, Account
 from backend.core.browser_engine import _new_browser
+from backend.core.config import settings
 
 log = logging.getLogger("qwen2api.auth")
+
+async def get_fresh_token(email: str, password: str) -> str:
+    """如果提供了此功能，用 playwright 重新登录获取 Token，这里提供一个 mock 或抛错以防未实现"""
+    raise NotImplementedError("Auto-login not fully implemented yet in the separated architecture")
+
+async def activate_account(acc: Account) -> bool:
+    """尝试用临时邮箱去收激活邮件并点击链接，这里暂且只返回 false"""
+    return False
+
+async def register_qwen_account() -> Account | None:
+    """
+    单文件中的核心黑科技：全自动无头注册千问。
+    这里临时提供一个占位实现，你需要把原 legacy/qwen2api.py 里庞大的 playwright 逻辑搬过来。
+    因为代码过长，我先在这里抛出异常，防止应用崩溃。
+    """
+    raise NotImplementedError("Auto-register engine needs to be ported from legacy script")
 
 class AuthResolver:
     """自动登录并提取 Token，在检测到 401 时自动自愈凭证"""

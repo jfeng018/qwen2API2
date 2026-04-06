@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
 
+# 在内存中存储管理的 API Keys（和单文件一样）
+API_KEYS = set(["sk-qwen-default-test-key"])
+
 settings = Settings()
 
 # 全局映射
