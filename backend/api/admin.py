@@ -139,6 +139,7 @@ async def activate_account(email: str, request: Request):
         success = await activate_logic(acc)
         if success:
             acc.valid = True
+            acc.activation_pending = False
             await pool.add(acc) # 这会触发覆盖保存
             return {"ok": True, "message": "Account activated successfully"}
         return {"ok": False, "error": "未能找到激活链接或获取Token"}

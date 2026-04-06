@@ -520,6 +520,7 @@ async def activate_account(acc: Account) -> bool:
             if token:
                 acc.token = token
                 acc.valid = True
+                acc.activation_pending = False
                 
                 # Extract fresh cookies
                 log.info("[Activate] 提取最新 cookies...")
