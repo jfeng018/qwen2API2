@@ -101,20 +101,15 @@ def build_prompt_with_tools(messages: list, tools: list) -> str:
             "Tool Descriptions:",
         ]
 
-        verbose_tools = len(tools) <= 20
+        verbose_tools = len(tools) <= 100
         for tool in tools:
             name = tool.get("name", "")
             desc = tool.get("description", "")
             if verbose_tools:
-                desc = desc[:120]
                 lines.append(f"- {name}: {desc}")
                 params = tool.get("parameters", {})
                 if params:
-                    props = params.get("properties", {})
-                    req = params.get("required", [])
-                    if props:
-                        ps = ", ".join(f"{k}({'req' if k in req else 'opt'})" for k in props)
-                        lines.append(f"  params: {ps}")
+                    lines.append(f"  schema: {json.dumps(params, ensure_ascii=False)}")
             else:
                 desc = desc[:60]
                 lines.append(f"- {name}: {desc}")
@@ -146,8 +141,8 @@ def build_prompt_with_tools(messages: list, tools: list) -> str:
                 )
             elif not isinstance(tool_content, str):
                 tool_content = str(tool_content)
-            if len(tool_content) > 1500:
-                tool_content = tool_content[:1500] + "...[truncated]"
+            if len(tool_content) > 30000:
+                tool_content = tool_content[:30000] + "...[truncated]"
             line = f"[Tool Result]{(' id=' + tool_call_id) if tool_call_id else ''}\n{tool_content}\n[/Tool Result]"
             if used + len(line) + 2 > budget and history_parts:
                 break
@@ -182,7 +177,7 @@ def build_prompt_with_tools(messages: list, tools: list) -> str:
             
         is_tool_result = role == "user" and ("[Tool Result]" in text or "[tool result]" in text.lower()
                                               or text.startswith("{") or "\"results\"" in text[:100])
-        max_len = 1500 if is_tool_result else 8000
+        max_len = 30000 if is_tool_result else 80000
         if len(text) > max_len:
             text = text[:max_len] + "...[truncated]"
         prefix = {"user": "Human: ", "assistant": "Assistant: ", "system": "System: "}.get(role, "")
@@ -205,8 +200,8 @@ def build_prompt_with_tools(messages: list, tools: list) -> str:
 
     parts = []
     if sys_part: parts.append(sys_part)
-    parts.extend(history_parts)
     if tools_part: parts.append(tools_part)
+    parts.extend(history_parts)
     parts.append("Assistant:")
     return "\n\n".join(parts)
 
