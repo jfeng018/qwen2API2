@@ -6,9 +6,9 @@ from contextlib import asynccontextmanager
 
 log = logging.getLogger("qwen2api.browser")
 
-JS_FETCH = """
-async (args) => {
-    const params = JSON.parse(args);
+JS_FETCH_TEMPLATE = """
+(async () => {
+    const params = {PARAMS_JSON};
     const opts = {
         method: params.method,
         headers: {
@@ -20,12 +20,12 @@ async (args) => {
     const res = await fetch(params.url, opts);
     const text = await res.text();
     return { status: res.status, body: text };
-}
+})()
 """
 
-JS_STREAM_CHUNKED = """
-async (args) => {
-    const params = JSON.parse(args);
+JS_STREAM_CHUNKED_TEMPLATE = """
+(async () => {
+    const params = {PARAMS_JSON};
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 1800000);
     try {
@@ -46,7 +46,7 @@ async (args) => {
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
         let buf = '';
-        const FLUSH_CHARS = 400;   // 每攒够 400 字符发一次，减少 IPC 调用次数
+        const FLUSH_CHARS = 400;
         while (true) {
             const { done, value } = await reader.read();
             if (done) {
@@ -54,7 +54,6 @@ async (args) => {
                 break;
             }
             buf += decoder.decode(value, { stream: true });
-            // 遇到完整 SSE 消息边界（\n\n）或缓冲够了就立刻发送
             if (buf.includes('\n\n') && buf.length >= FLUSH_CHARS) {
                 await send_chunk(params.chat_id, buf);
                 buf = '';
@@ -66,14 +65,14 @@ async (args) => {
         clearTimeout(timer);
         return { status: 0, body: 'JS error: ' + e.message };
     }
-}
+})()
 """
 
-JS_STREAM_FULL = """
-async (args) => {
-    const params = JSON.parse(args);
+JS_STREAM_FULL_TEMPLATE = """
+(async () => {
+    const params = {PARAMS_JSON};
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 1800000);  // 1800s timeout
+    const timer = setTimeout(() => controller.abort(), 1800000);
     try {
         const res = await fetch(params.url, {
             method: 'POST',
@@ -103,7 +102,7 @@ async (args) => {
         clearTimeout(timer);
         return { status: 0, body: 'JS error: ' + e.message };
     }
-}
+})()
 """
 
 _CAMOUFOX_OPTS = {
@@ -238,7 +237,8 @@ class BrowserEngine:
                 "method": method, "url": path, "token": token,
                 "body_json": json.dumps(body, ensure_ascii=True) if body else None,
             }, ensure_ascii=True)
-            result = await page.evaluate(JS_FETCH, args_json)
+            code = JS_FETCH_TEMPLATE.replace("{PARAMS_JSON}", args_json)
+            result = await page.evaluate(code)
             if result.get("status") == 0 and result.get("body", "").startswith("JS error:"):
                 needs_refresh = True
             return result
@@ -275,8 +275,9 @@ class BrowserEngine:
                     "url": url, "token": token,
                     "payload_json": json.dumps(payload, ensure_ascii=True),
                 }, ensure_ascii=True)
+                code = JS_STREAM_FULL_TEMPLATE.replace("{PARAMS_JSON}", args_json)
                 res = await asyncio.wait_for(
-                    page.evaluate(JS_STREAM_FULL, args_json),
+                    page.evaluate(code),
                     timeout=1800,
                 )
                 if res.get("status") != 200:
@@ -306,8 +307,9 @@ class BrowserEngine:
                 "payload_json": json.dumps(payload, ensure_ascii=True),
                 "chat_id": chat_id,
             }, ensure_ascii=True)
+            code = JS_STREAM_CHUNKED_TEMPLATE.replace("{PARAMS_JSON}", args_json)
             js_task = asyncio.create_task(
-                page.evaluate(JS_STREAM_CHUNKED, args_json)
+                page.evaluate(code)
             )
             # 从队列实时转发 chunk，直到 JS 任务结束且队列清空
             while True:
