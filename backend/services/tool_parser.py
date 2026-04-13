@@ -66,6 +66,9 @@ def _normalize_fragmented_tool_call(answer: str) -> str:
     if "##TOOL_CALL##" in text and "##END_CALL##" in text:
         return text
 
+    text = re.sub(r"</?think>", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"Tool\s+[A-Za-z0-9_.:-]*\s*does not exists?\\.?", "", text, flags=re.IGNORECASE)
+
     lines = []
     for raw_line in text.splitlines():
         line = raw_line.strip()
